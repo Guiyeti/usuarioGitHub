@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mostrar datos sin recargar</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+
+    <style>
+        .repos-container {
+            background-color: #f0f8ff;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .bio-container {
+            background-color: #e6e6fa;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .antiguedad-container {
+            background-color: #babaee;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .avatar-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .avatar-container img {
+            max-width: 150px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="pedirDatos">
+            <h1>Introduzca el nombre de usuario: </h1>
+            <label for="nombre" class="mt-3">Si lo conoce insertelo en este campo</label>
+            <input type="text" id="nombre" class="form-control">
+
+            <label for="datos" class="mt-3">Si no, busque entre los elementos de muestra</label>
+            <select id="datos" class="form-control" disabled></select>
+
+            <button type="button" id="btn-mostrar" class="btn btn-primary mt-3">Mostrar datos</button>
+            <button type="button" id="btn-cambiar" class="btn btn-warning mt-3">Cambiar Forma de Selección</button>
+        </div>
+        <div id="divResultados">
+            <div id="avatar-container" class="avatar-container mt-3"><img></div>
+            <div id="resultado" class="mt-3"></div>
+            <div id="repos-container" class="repos-container"></div>
+            <div id="bio-container" class="bio-container"></div>
+            <div id="antiguedad-container" class="bio-container"></div>
+            <button type="button" id="empezar" class="btn btn-warning mt-3">Volver a la seleción de usuarios</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            //añadimos esta linea para no mostrar el div de resultados en la búsqueda de usuarios
+            document.getElementById('divResultados').style.display = 'none';
+            document.getElementById('btn-mostrar').addEventListener('click', function () {
+                const usuario = document.getElementById('nombre').value;
+                if (usuario) {
+                    fetch(`https://api.github.com/users/${usuario}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            //comprobamos que el usuario existe
+                            if (data.message === 'Not Found') { 
+                                alert("Usuario no encontrado. Por favor, intenta con otro nombre.");
+                                document.getElementById('nombre').value = '';
+                            } else if (data) {
+                                document.getElementById('pedirDatos').style.display = 'none';
+                                document.getElementById('divResultados').style.display = 'block';
+
+                                document.getElementById('avatar-container').innerHTML = data.avatar_url ? `<img src="${data.avatar_url}" alt="Avatar" class="img-thumbnail">` : '';
+                                document.getElementById('resultado').innerHTML = data.name ? `<h2>Hola, ${data.name}!</h2>` : '<h2>Usuario sin nombre especifico en la api!</h2>';
+                                document.getElementById('resultado').innerHTML += `<p>Nombre de usuario buscado: ${usuario}</p>`;
+                                document.getElementById('bio-container').innerHTML = `<strong>Biografía:</strong> ${data.bio ? data.bio : "No especificada"}`;
+
+                                let antiguedad = new Date().getFullYear() - new Date(data.created_at).getFullYear();
+                                document.getElementById('antiguedad-container').innerHTML = `Llevas ${isNaN(antiguedad) ? 0 : antiguedad} años con nosotros`;
+
+                                fetch(`https://api.github.com/users/${usuario}/repos`)
+                                    .then(response => response.json())
+                                    .then(repos => {
+                                        let reposHtml = `Tiene ${repos.length} repositorios públicos:<br>`;
+                                        repos.forEach(repo => {
+                                            reposHtml += `<li>${repo.name}</li>`;
+                                        });
+                                        document.getElementById('repos-container').innerHTML = reposHtml;
+                                    })
+                                    .catch(error => {
+                                        console.error('Error al obtener los repositorios:', error);
+                                    });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al obtener los datos del usuario:', error);
+                        });
+                }
+            });
+
+            document.getElementById('empezar').addEventListener('click', function () {
+                document.getElementById('pedirDatos').style.display = 'block';
+                document.getElementById('divResultados').style.display = 'none';
+                document.getElementById('nombre').value = '';
+                document.getElementById('nombre').focus();
+
+            });
+        });
+
+    </script>
+</body>
+
+</html>
